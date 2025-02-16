@@ -179,9 +179,3 @@ print(model.get_probability("Valve", "Valve"))
 ## **Conclusion**
 This Bayesian Network AI Agent provides a **probabilistic framework** for predicting **game popularity, pricing, and ownership trends** based on historical Steam data. It helps **game developers and analysts** make **data-driven pricing decisions** and optimize **marketing strategies**.
 
----
-🚀 **Next Steps: Train on More Data & Improve Accuracy!** 🚀  
-
----
-
-This **README.md** provides a **comprehensive overview** of your **Bayesian Network AI Agent**, ensuring clarity for **future development, collaboration, and research.** Let me know if you’d like to **add visualizations or expand any sections!** 🎯
