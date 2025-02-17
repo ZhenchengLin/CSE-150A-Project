@@ -176,6 +176,20 @@ print(model.get_probability("Valve", "Valve"))
 
 ---
 
-## **Conclusion**
-This Bayesian Network AI Agent provides a **probabilistic framework** for predicting **game popularity, pricing, and ownership trends** based on historical Steam data. It helps **game developers and analysts** make **data-driven pricing decisions** and optimize **marketing strategies**.
+## Conclusion
 
+The Bayesian Network AI Agent offers a robust and interpretable probabilistic framework for predicting key aspects of a new game's success, including playtime metrics, pricing strategy, and estimated ownership. By leveraging historical data from over 83,000 Steam games, the model constructs Conditional Probability Tables (CPTs) to capture the nuanced relationships between developers, publishers, playtime, price, and ownership.
+
+Key achievements of the project include:
+
+- **Probabilistic Modeling:** A clear, step-by-step Bayesian inference process that starts with developers and publishers to predict playtime, which in turn informs pricing and ultimately the estimated number of owners.
+- **Data Simplification:** A manual binning strategy that transforms continuous variables into three meaningful categories, enhancing interpretability.
+- **Efficient Inference:** Direct CPT lookups ensure that the model provides quick, interpretable predictions for new games.
+- **Actionable Insights:** The agent aids game developers and analysts in making data-driven decisions regarding pricing and marketing strategies.
+
+Looking ahead, potential improvements include:
+
+- **Optimization of Inference Speed:** Further streamlining the CPT lookup process to handle larger datasets efficiently.
+- **Dynamic Online Learning:** Updating the CPTs in real-time as new game data becomes available.
+
+Overall, this Bayesian Network AI Agent serves as a strong foundation for predictive analytics in the gaming industry, demonstrating both practical applicability and significant room for future enhancement.
