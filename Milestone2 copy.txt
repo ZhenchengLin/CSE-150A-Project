@@ -1,0 +1,1105 @@
+{
+  "cells": [
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 776
+        },
+        "id": "twP_z5_iUzvs",
+        "outputId": "c6b231be-fbfb-4f70-9014-a378fc519945"
+      },
+      "outputs": [],
+      "source": [
+        "import pandas as pd\n",
+        "\n",
+        "df = pd.read_parquet(\"hf://datasets/FronkonGames/steam-games-dataset/data/train-00000-of-00001-e2ed184370a06932.parquet\")\n",
+        "df.head()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Socxbvf-Ym-K",
+        "outputId": "c5242da5-400d-4aac-ef56-5a2291831976"
+      },
+      "outputs": [],
+      "source": [
+        "## column display, description\n",
+        "column_info = pd.DataFrame({\n",
+        "    \"Column Name\": df.columns.tolist(),\n",
+        "    \"Data Type\": df.dtypes.astype(str),\n",
+        "    \"Non-Null Count\": df.count().values.astype(str),\n",
+        "    \"Unique Count\": df.nunique().values.astype(str),\n",
+        "})\n",
+        "\n",
+        "\n",
+        "print(column_info.to_markdown())"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "xgo34L6yavYB",
+        "outputId": "f6fd78d0-8eaf-474e-bb3b-fe29acace967"
+      },
+      "outputs": [],
+      "source": [
+        "#number of observation\n",
+        "print(\"Total Observations (Games):\", df.shape[0])\n",
+        "print(\"Total Features:\", df.shape[1])\n",
+        "print(\"Duplicate Rows:\", df.duplicated().sum())\n",
+        "print(\"Unique AppIDs:\", df['AppID'].nunique())\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 893
+        },
+        "id": "Bjy7kXrPa623",
+        "outputId": "4ebcf46e-1973-4ccf-f04c-0392efd6bf06"
+      },
+      "outputs": [],
+      "source": [
+        "print(df.describe().to_markdown())  # Summary statistics for numerical features\n",
+        "\n",
+        "# Plot histograms for numerical distributions\n",
+        "import matplotlib.pyplot as plt\n",
+        "plt.show()\n",
+        "import numpy as np\n",
+        "\n",
+        "# Select numerical columns\n",
+        "# Extract numerical columns from the dataset\n",
+        "numerical_columns = df.select_dtypes(include=['int64', 'float64']).columns.tolist()\n",
+        "\n",
+        "\n",
+        "# Apply log transformation to skewed numerical data (add 1 to avoid log(0) issue)\n",
+        "df_log = df.copy()\n",
+        "for col in numerical_columns:\n",
+        "    df_log[col] = np.log1p(df[col])\n",
+        "\n",
+        "# Plot histograms with better scaling\n",
+        "df_log[numerical_columns].hist(figsize=(12, 8), bins=50)\n",
+        "plt.show()\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 87
+        },
+        "id": "2fkDBWd1hMZo",
+        "outputId": "604da226-a634-4cdd-db0c-e624bf18c3a8"
+      },
+      "outputs": [],
+      "source": [
+        "## Decide to use following Properties: Average playtime forever, Median playtime forever, Estimated owners, price, Positive/Negative Review\n",
+        "\"\"\"Reason:\n",
+        "Price (Price):\n",
+        "How pricing affects ownership and user engagement.\n",
+        "Are expensive games more popular?\n",
+        "\n",
+        "Estimated Owners (Estimated owners):\n",
+        "Represents how many people own the game, a key indicator of popularity.\n",
+        "Compare ownership to price and user score.\n",
+        "\n",
+        "Positive Reviews (Positive) & Negative Reviews (Negative):\n",
+        "Helps evaluate overall sentiment and reception.\n",
+        "Compare with price, user score, and estimated owners.\n",
+        "\n",
+        "Peak Concurrent Users (Peak CCU):\n",
+        "Shows maximum active players at once.\n",
+        "Helps determine engagement level.\n",
+        "\n",
+        "Average Playtime Forever (Average playtime forever):\n",
+        "Shows long-term engagement.\n",
+        "Compare with price and user satisfaction.\n",
+        "\n",
+        "Median Playtime Forever (Median playtime forever):\n",
+        "More robust against outliers than average playtime.\n",
+        "Helps analyze engagement trends.\"\"\"\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 1000
+        },
+        "id": "8RXs8u7ucy9x",
+        "outputId": "b7f7bbce-3e32-49e3-db9d-ab4e3c4662d7"
+      },
+      "outputs": [],
+      "source": [
+        "# Properties deeper visualization : 'Average playtime forever', 'Median playtime forever'\n",
+        "# Extract the relevant columns\n",
+        "playtime_data = df[['Average playtime forever', 'Median playtime forever']]\n",
+        "\n",
+        "# Plot histograms for both columns\n",
+        "fig, axes = plt.subplots(1, 2, figsize=(12, 5))\n",
+        "\n",
+        "axes[0].hist(playtime_data['Average playtime forever'], bins=50, color='blue', alpha=0.7)\n",
+        "axes[0].set_title('Distribution of Average Playtime Forever')\n",
+        "axes[0].set_xlabel('Playtime (minutes)')\n",
+        "axes[0].set_ylabel('Frequency')\n",
+        "axes[0].set_yscale('log')  # Log scale to handle large counts of 0s\n",
+        "\n",
+        "axes[1].hist(playtime_data['Median playtime forever'], bins=50, color='green', alpha=0.7)\n",
+        "axes[1].set_title('Distribution of Median Playtime Forever')\n",
+        "axes[1].set_xlabel('Playtime (minutes)')\n",
+        "axes[1].set_ylabel('Frequency')\n",
+        "axes[1].set_yscale('log')  # Log scale to handle large counts of 0s\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()\n",
+        "\n",
+        "# Properties deeper visualization : price\n",
+        "# Extract relevant columns\n",
+        "price_owners_data = df[['Price']]\n",
+        "\n",
+        "# Plot histograms for both columns\n",
+        "fig, axes = plt.subplots(1, figsize=(12, 5))\n",
+        "\n",
+        "axes.hist(price_owners_data['Price'], bins=50, color='blue', alpha=0.7)\n",
+        "axes.set_title('Distribution of Price')\n",
+        "axes.set_xlabel('Price ($)')\n",
+        "axes.set_ylabel('Frequency')\n",
+        "axes.set_yscale('log')  # Log scale for better visualization\n",
+        "\n",
+        "\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()\n",
+        "\n",
+        "# Properties deeper visualization : Estimated owners\n",
+        "# Convert 'Estimated owners' to numeric values by extracting the upper bound from the range\n",
+        "df['Estimated owners'] = df['Estimated owners'].astype(str).str.split('-').str[-1].str.replace(',', '').astype(float)\n",
+        "\n",
+        "# Define bins for estimated owners\n",
+        "# Define narrower bins for estimated owners\n",
+        "# Define bins with a more granular breakdown for 10K to 25K range\n",
+        "bins = [0, 1000, 5000, 10000, 15000, 20000, 25000, 50000, 100000, 250000, 500000, 1000000, 5000000, df['Estimated owners'].max()]\n",
+        "labels = [\"<1K\", \"1K-5K\", \"5K-10K\", \"10K-15K\", \"15K-20K\", \"20K-25K\", \"25K-50K\", \"50K-100K\", \"100K-250K\",\n",
+        "          \"250K-500K\", \"500K-1M\", \"1M-5M\", \"5M+\"]\n",
+        "\n",
+        "# Apply binning\n",
+        "df['Owners Binned'] = pd.cut(df['Estimated owners'], bins=bins, labels=labels)\n",
+        "\n",
+        "# Plot histogram with bins\n",
+        "plt.figure(figsize=(10, 5))\n",
+        "df['Owners Binned'].value_counts().sort_index().plot(kind='bar', color='green', alpha=0.7)\n",
+        "plt.title('Binned Distribution of Estimated Owners')\n",
+        "plt.xlabel('Estimated Owners Range')\n",
+        "plt.ylabel('Frequency')\n",
+        "plt.xticks(rotation=45)\n",
+        "plt.show()\n",
+        "\n",
+        "# Properties deeper visualization :  Peak Concurrent Users (Peak CCU), User Score (User score)\n",
+        "\n",
+        "# Extract relevant columns\n",
+        "peak_ccu_user_score_data = df[[ 'Positive']]\n",
+        "\n",
+        "# Plot histograms for both columns\n",
+        "fig, axes = plt.subplots(1, figsize=(12, 5))\n",
+        "\n",
+        "\n",
+        "axes.hist(peak_ccu_user_score_data['Positive'], bins=50, color='green', alpha=0.7)\n",
+        "axes.set_title('Distribution of Positive')\n",
+        "axes.set_xlabel('Positive')\n",
+        "axes.set_ylabel('Frequency')\n",
+        "axes.set_yscale('log')  # Log scale to handle skewed distribution\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()\n",
+        "\n",
+        "fig, axes = plt.subplots(1, figsize=(12, 5))\n",
+        "Negative_data = df[['Negative']]\n",
+        "\n",
+        "axes.hist(Negative_data['Negative'], bins=50, color='blue', alpha=0.7)\n",
+        "axes.set_title('Distribution of Negative')\n",
+        "axes.set_xlabel('Negative')\n",
+        "axes.set_ylabel('Frequency')\n",
+        "axes.set_yscale('log')  # Log scale for better visualization\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 507
+        },
+        "id": "j4xeuuNBi0JP",
+        "outputId": "ba524a25-c396-4b85-b566-fac2f4494b6e"
+      },
+      "outputs": [],
+      "source": [
+        "\"\"\"Also developer and publisher are extracted, they would be environment that we provide to final AI agent, that AI agent would consider these three factors, predict the market performance in next year \"\"\"\n",
+        "# Define selected columns including AppID and set it as index\n",
+        "# Define selected columns including environment factors (Developer, Publisher, Release Date)\n",
+        "selected_columns = ['AppID', 'Name', 'Developers', 'Publishers', 'Release date' ,\n",
+        "                    'Average playtime forever', 'Median playtime forever', 'Estimated owners',\n",
+        "                    'Price', 'Positive', 'Negative']\n",
+        "\n",
+        "# Create a new DataFrame with only selected columns and set AppID as index\n",
+        "df_selected = df[selected_columns].set_index('AppID')\n",
+        "\n",
+        "df_selected.head(100)\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 507
+        },
+        "id": "s0zykkJz69eC",
+        "outputId": "8c416dcf-8a1d-4363-e48a-074d039e2524"
+      },
+      "outputs": [],
+      "source": [
+        "df_normalized = df_selected.copy()\n",
+        "\n",
+        "# Calculate total reviews (Positive + Negative)\n",
+        "df_normalized['Total Reviews'] = df_normalized['Positive'] + df_normalized['Negative']\n",
+        "\n",
+        "# Avoid division by zero by replacing 0 total reviews with 1 (to keep ratio as 0)\n",
+        "df_normalized['Total Reviews'] = df_normalized['Total Reviews'].replace(0, 1)\n",
+        "\n",
+        "# Normalize Positive and Negative reviews\n",
+        "df_normalized['Positive Ratio'] = df_normalized['Positive'] / df_normalized['Total Reviews']\n",
+        "df_normalized['Negative Ratio'] = df_normalized['Negative'] / df_normalized['Total Reviews']\n",
+        "\n",
+        "# Drop the 'Total Reviews' column as it's only needed for calculation\n",
+        "df_normalized.drop(columns=['Total Reviews'], inplace=True)\n",
+        "\n",
+        "# Plot histogram for Positive and Negative Ratios\n",
+        "fig, axes = plt.subplots(1, 2, figsize=(12, 5))\n",
+        "\n",
+        "axes[0].hist(df_normalized['Positive Ratio'], bins=50, color='blue', alpha=0.7)\n",
+        "axes[0].set_title('Distribution of Positive Review Ratio')\n",
+        "axes[0].set_xlabel('Positive Ratio')\n",
+        "axes[0].set_ylabel('Frequency')\n",
+        "\n",
+        "axes[1].hist(df_normalized['Negative Ratio'], bins=50, color='red', alpha=0.7)\n",
+        "axes[1].set_title('Distribution of Negative Review Ratio')\n",
+        "axes[1].set_xlabel('Negative Ratio')\n",
+        "axes[1].set_ylabel('Frequency')\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "Hohe41TzmAoY",
+        "outputId": "35794882-12e6-4a94-ba59-668fb85ea5fa"
+      },
+      "outputs": [],
+      "source": [
+        "print(df_normalized.describe().to_markdown())"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 507
+        },
+        "id": "KAW30Tl6oqmE",
+        "outputId": "fb695065-5123-4f03-eb31-ee1b2a0494c8"
+      },
+      "outputs": [],
+      "source": [
+        "# Create a new DataFrame to store binned values\n",
+        "df_binned = df_normalized.copy()\n",
+        "\n",
+        "# Define manual bin ranges for each numerical column with 3 levels (0,1,2)\n",
+        "bin_ranges = {\n",
+        "    'Average playtime forever': [0, 5, 20000, float('inf')],  # Low: 0, Medium: 1-100, High: 100+\n",
+        "    'Median playtime forever': [0, 10, 40000, float('inf')],    # Low: 0, Medium: 1-50, High: 50+\n",
+        "    'Estimated owners': [0, 20000, 1000000, float('inf')],   # Low: 0-50K, Medium: 50K-500K, High: 500K+\n",
+        "    'Price': [0, 5, 40, float('inf')],                     # Low: 0-5, Medium: 5-20, High: 20+\n",
+        "    'Positive Ratio': [0, 0.5, 0.8, float('inf')],               # Low: 0-10, Medium: 10-1K, High: 1K+\n",
+        "    'Negative Ratio': [0, 0.5, 0.8, float('inf')]                         # Low: 0-40, Medium: 40-80, High: 80-100\n",
+        "}\n",
+        "\n",
+        "# Apply manual binning using pd.cut() with 3 categories (0,1,2)\n",
+        "for col, bins in bin_ranges.items():\n",
+        "    df_binned[col] = pd.cut(df_binned[col], bins=bins, labels=[0, 1, 2], include_lowest=True)\n",
+        "df_binned"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 1000
+        },
+        "id": "EASI2AbjsMoj",
+        "outputId": "a150eb67-cd75-474c-8289-bc56740d82ea"
+      },
+      "outputs": [],
+      "source": [
+        "\n",
+        "# Define the columns to visualize after binning\n",
+        "binned_columns = ['Average playtime forever', 'Median playtime forever', 'Estimated owners',\n",
+        "                  'Price', 'Positive Ratio','Negative Ratio']\n",
+        "\n",
+        "# Plot the distribution of binned values\n",
+        "fig, axes = plt.subplots(2, 3, figsize=(15, 10))\n",
+        "axes = axes.ravel()\n",
+        "\n",
+        "for i, col in enumerate(binned_columns):\n",
+        "    df_binned[col].value_counts().sort_index().plot(kind='bar', ax=axes[i], color='blue', alpha=0.7)\n",
+        "    axes[i].set_title(f'Distribution of {col} (Binned)')\n",
+        "    axes[i].set_xlabel('Binned Category')\n",
+        "    axes[i].set_ylabel('Count')\n",
+        "\n",
+        "plt.tight_layout()\n",
+        "plt.show()\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 659
+        },
+        "id": "PnXuJCJE8LS8",
+        "outputId": "9dc889af-e7ff-44b0-b141-c47f143c9a78"
+      },
+      "outputs": [],
+      "source": [
+        "#Bayesian Network Form\n",
+        "'''Bayesian Network Description:\n",
+        "The Bayesian Network models the relationships between key factors influencing a game's success, focusing on popularity, pricing, estimated owners, and revenue.\n",
+        "\n",
+        "Predicting Popularity:\n",
+        "\n",
+        "The developer, publisher, and release date of a game significantly impact its overall popularity.\n",
+        "Popularity is measured using Average Playtime Forever and Median Playtime Forever, which indicate player engagement.\n",
+        "Estimating Price:\n",
+        "\n",
+        "Once the popularity metrics are determined, they influence the game's price.\n",
+        "More engaging games may justify higher prices, while lower engagement may lead to discounts or lower starting prices.\n",
+        "Predicting Sales (Estimated Owners):\n",
+        "\n",
+        "The price of a game affects the number of estimated owners, as pricing plays a crucial role in player adoption.\n",
+        "Lower prices may lead to higher adoption, while premium pricing may result in fewer but high-value purchases.\n",
+        "Revenue Calculation:\n",
+        "\n",
+        "The number of estimated owners ultimately determines total revenue, as it directly correlates with sales performance.\n",
+        "Additionally, price also directly influences revenue, as a higher price per unit can compensate for fewer sales, while lower prices require higher sales volume to generate significant revenue. '''\n",
+        "import networkx as nx\n",
+        "\n",
+        "# Define the Bayesian Network edges based on the refined description\n",
+        "edges = [\n",
+        "    ('Developers', 'Average Playtime Forever'),\n",
+        "    ('Publishers', 'Average Playtime Forever'),\n",
+        "\n",
+        "    ('Developers', 'Median Playtime Forever'),\n",
+        "    ('Publishers', 'Median Playtime Forever'),\n",
+        "\n",
+        "    ('Average Playtime Forever', 'Price'),\n",
+        "    ('Median Playtime Forever', 'Price'),\n",
+        "\n",
+        "    ('Price', 'Estimated Owners'),\n",
+        "    ('Estimated Owners', 'Revenue'),\n",
+        "    ('Price', 'Revenue')  # Price also directly impacts revenue\n",
+        "]\n",
+        "\n",
+        "# Create a directed graph\n",
+        "G = nx.DiGraph()\n",
+        "G.add_edges_from(edges)\n",
+        "\n",
+        "# Draw the Bayesian Network\n",
+        "plt.figure(figsize=(10, 6))\n",
+        "pos = nx.spring_layout(G, seed=100)  # Layout for better visualization\n",
+        "nx.draw(G, pos, with_labels=True, node_size=3000, node_color=\"lightblue\", font_size=10, font_weight=\"bold\", edge_color=\"gray\")\n",
+        "\n",
+        "plt.title(\"Bayesian Network for Game Popularity and Revenue Prediction\")\n",
+        "plt.show()\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 237
+        },
+        "id": "wSV6kgVNRNFE",
+        "outputId": "0b963bec-de6a-4fa9-81da-84f848b76db1"
+      },
+      "outputs": [],
+      "source": [
+        "# Convert 'Average Playtime Forever' and 'Median Playtime Forever' to numerical type\n",
+        "df_binned['Average playtime forever'] = pd.to_numeric(df_binned['Average playtime forever'], errors='coerce')\n",
+        "df_binned['Median playtime forever'] = pd.to_numeric(df_binned['Median playtime forever'], errors='coerce')\n",
+        "\n",
+        "# Display the first few rows to verify the transformation\n",
+        "df_binned[['Average playtime forever', 'Median playtime forever']].head()\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 475
+        },
+        "id": "SQGATnlXJW4q",
+        "outputId": "f850c5d9-110e-4e7d-fed7-39cf886a688d"
+      },
+      "outputs": [],
+      "source": [
+        "  # Replace with actual file path\n",
+        "\n",
+        "# Shuffle the dataset randomly before splitting\n",
+        "df_shuffled = df_binned.sample(frac=1, random_state=42).reset_index(drop=True)\n",
+        "\n",
+        "# Split into 80% training and 20% testing\n",
+        "train_size = int(0.8 * len(df_shuffled))\n",
+        "df_train = df_shuffled.iloc[:train_size]\n",
+        "df_test = df_shuffled.iloc[train_size:]\n",
+        "\n",
+        "df_train\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 454
+        },
+        "id": "ZE3_lKs4EMu5",
+        "outputId": "6ab3a9db-0e9a-4177-eb15-5cb4e6e966d1"
+      },
+      "outputs": [],
+      "source": [
+        "parent_vars = ['Developers', 'Publishers']\n",
+        "target_vars = ['Average playtime forever', 'Median playtime forever']\n",
+        "cpt_tables = {}\n",
+        "\n",
+        "for target in target_vars:\n",
+        "    # Compute probability distribution for each category of target variable\n",
+        "    cpt = df_binned.groupby(parent_vars)[target].value_counts(normalize = True).unstack().fillna(0)\n",
+        "    cpt_tables[target] = cpt  # Store CPT\n",
+        "\n",
+        "# Display CPT for 'Average Playtime Forever'\n",
+        "cpt_tables['Average playtime forever']"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "d3MedH24c03x",
+        "outputId": "b9757aab-f1ed-42cb-9a9c-3d2fc44795bf"
+      },
+      "outputs": [],
+      "source": [
+        "cpt_tables['Average playtime forever'].xs(('（Hong Kong）GKD Game Studio', '（Hong Kong）GKD Game Studio'), level=['Developers', 'Publishers']).values.tolist()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 209
+        },
+        "id": "ARJXH67Wbwij",
+        "outputId": "43598f60-f471-4df2-8fe8-7ea1a9efbe80"
+      },
+      "outputs": [],
+      "source": [
+        "cpt_tables['Average playtime forever'].xs(('#12', 'Fish Goblin Games'), level=['Developers', 'Publishers']).idxmax()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 362
+        },
+        "id": "oP_uV6bqOG3q",
+        "outputId": "fbc2bfb2-be85-4354-c0d1-c3749eed0d11"
+      },
+      "outputs": [],
+      "source": [
+        "# Compute CPT for 'Price' given 'Average Playtime Forever' and 'Median Playtime Forever'\n",
+        "df_cpt_price = df_binned.groupby(['Average playtime forever', 'Median playtime forever'])['Price'].value_counts(normalize=True).unstack().fillna(0)\n",
+        "\n",
+        "# Display the first few rows of the CPT DataFrame\n",
+        "df_cpt_price\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "BhHUvZ84eZWE",
+        "outputId": "8bd9c49c-6443-4d36-80a2-fc88a3e87407"
+      },
+      "outputs": [],
+      "source": [
+        "df_cpt_price.loc[(0, 1)].to_list()"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 229
+        },
+        "id": "g22izT3rOoN9",
+        "outputId": "c79af8f3-3bbf-4b5e-8306-4488af4eb544"
+      },
+      "outputs": [],
+      "source": [
+        "# Compute CPT for 'Estimated Owners' given 'Price'\n",
+        "df_cpt_estimated_owners = df_binned.groupby(['Price'])['Estimated owners'].value_counts(normalize=True).unstack().fillna(0)\n",
+        "\n",
+        "# Display the first few rows of the CPT DataFrame\n",
+        "df_cpt_estimated_owners\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 105
+        },
+        "id": "aFdV8fX2PvNb",
+        "outputId": "5017dde4-b1c2-4567-c551-00058f8b16a2"
+      },
+      "outputs": [],
+      "source": [
+        "\"\"\"\n",
+        "PEAS Description of the AI Agent\n",
+        "Our AI agent is designed to predict game popularity and revenue using a Bayesian Network model based on historical game data.\n",
+        "\n",
+        "PEAS Components\n",
+        "PEAS stands for Performance measure, Environment, Actuators, and Sensors.\n",
+        "\n",
+        "Component\tDescription\n",
+        "Performance Measure\tThe AI agent is evaluated based on its prediction accuracy for game popularity (playtime, owners) and financial success (revenue). We aim for high predictive accuracy and meaningful insights.\n",
+        "Environment\tThe \"world\" is the gaming industry, where factors like developers, publishers, release date, price, and user reviews influence a game's popularity, sales, and revenue.\n",
+        "Actuators\tThe AI agent does not take direct actions in the world but provides predictions that could be used by game studios, publishers, or analysts to make informed decisions on pricing, marketing, and game development.\n",
+        "Sensors\tThe dataset acts as the sensor input, providing structured information about past games, including developer, publisher, price, playtime, user reviews, and sales numbers.\n",
+        "\n",
+        "Understanding the \"World\" of the AI Agent\n",
+        "The AI agent operates in a probabilistic, uncertain world where multiple factors affect game success.\n",
+        "Historical game data is used to infer relationships between variables.\n",
+        "The AI predicts future outcomes based on prior trends and Bayesian probability.\n",
+        "\n",
+        "Type of AI Agent: Goal-Based, Utility-Based, or Other?\n",
+        "Our AI agent is a Goal-Based Agent:\n",
+        "Goal-Based: The goal is to predict game success, optimizing for higher playtime, sales, and revenue.\n",
+        "\n",
+        "Where the AI Agent Fits in Probabilistic Modeling\n",
+        "Bayesian Network Approach:\n",
+        "The agent learns probabilistic dependencies between game factors (developer, price, reviews) and predicts future playtime, sales, and revenue.\n",
+        "\n",
+        "Uncertainty Handling:\n",
+        "Instead of making fixed predictions, the agent provides a range of possible outcomes, assigning probabilities to different scenarios.\n",
+        "\n",
+        "Decision Support:\n",
+        "The AI helps game developers assess risks and rewards when launching new games.\n",
+        " \"\"\""
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "7MZ1ngozRflD"
+      },
+      "outputs": [],
+      "source": [
+        "class BayesianNetworkModel:\n",
+        "    def Get_CPT_Avg_Median(self):\n",
+        "        parent_vars = ['Developers', 'Publishers']\n",
+        "        target_vars = ['Average playtime forever', 'Median playtime forever']\n",
+        "        cpt_tables = {}\n",
+        "\n",
+        "        for target in target_vars:\n",
+        "            # Compute probability distribution for each category of target variable\n",
+        "            cpt = self.binidf.groupby(parent_vars)[target].value_counts(normalize = True).unstack().fillna(0)\n",
+        "            cpt_tables[target] = cpt  # Store CPT\n",
+        "        return cpt_tables\n",
+        "    def Get_CPT_Price(self):\n",
+        "        df_cpt_price = self.binidf.groupby(['Average playtime forever', 'Median playtime forever'])['Price'].value_counts(normalize=True).unstack().fillna(0)\n",
+        "        return df_cpt_price\n",
+        "    def Get_CPT_Estimated_Owners(self):\n",
+        "        df_cpt_estimated_owners = self.binidf.groupby(['Price'])['Estimated owners'].value_counts(normalize=True).unstack().fillna(0)\n",
+        "        return df_cpt_estimated_owners\n",
+        "    def Clean_Normalize(self, intidf, percent):\n",
+        "        # Define selected columns including AppID and set it as index\n",
+        "        # Define selected columns including environment factors (Developer, Publisher, Release Date)\n",
+        "        selected_columns = ['AppID', 'Name', 'Developers', 'Publishers', 'Release date' ,\n",
+        "                    'Average playtime forever', 'Median playtime forever', 'Estimated owners',\n",
+        "                    'Price', 'Positive', 'Negative']\n",
+        "\n",
+        "        # Create a new DataFrame with only selected columns and set AppID as index\n",
+        "        df_selected = df[selected_columns].set_index('AppID')\n",
+        "        df_normalized = df_selected.copy()\n",
+        "\n",
+        "        # Calculate total reviews (Positive + Negative)\n",
+        "        df_normalized['Total Reviews'] = df_normalized['Positive'] + df_normalized['Negative']\n",
+        "\n",
+        "        # Avoid division by zero by replacing 0 total reviews with 1 (to keep ratio as 0)\n",
+        "        df_normalized['Total Reviews'] = df_normalized['Total Reviews'].replace(0, 1)\n",
+        "\n",
+        "        # Normalize Positive and Negative reviews\n",
+        "        df_normalized['Positive Ratio'] = df_normalized['Positive'] / df_normalized['Total Reviews']\n",
+        "        df_normalized['Negative Ratio'] = df_normalized['Negative'] / df_normalized['Total Reviews']\n",
+        "\n",
+        "        # Drop the 'Total Reviews' column as it's only needed for calculation\n",
+        "        df_normalized.drop(columns=['Total Reviews'], inplace=True)\n",
+        "        # Create a new DataFrame to store binned values\n",
+        "        df_binned = df_normalized.copy()\n",
+        "\n",
+        "        # Define manual bin ranges for each numerical column with 3 levels (0,1,2)\n",
+        "        bin_ranges = {\n",
+        "            'Average playtime forever': [0, 5, 20000, float('inf')],  # Low: 0, Medium: 1-100, High: 100+\n",
+        "            'Median playtime forever': [0, 10, 40000, float('inf')],    # Low: 0, Medium: 1-50, High: 50+\n",
+        "            'Estimated owners': [0, 20000, 1000000, float('inf')],   # Low: 0-50K, Medium: 50K-500K, High: 500K+\n",
+        "            'Price': [0, 5, 40, float('inf')],                     # Low: 0-5, Medium: 5-20, High: 20+\n",
+        "            'Positive Ratio': [0, 0.5, 0.8, float('inf')],               # Low: 0-10, Medium: 10-1K, High: 1K+\n",
+        "            'Negative Ratio': [0, 0.5, 0.8, float('inf')]                         # Low: 0-40, Medium: 40-80, High: 80-100\n",
+        "        }\n",
+        "        # Apply manual binning using pd.cut() with 3 categories (0,1,2)\n",
+        "        for col, bins in bin_ranges.items():\n",
+        "            df_binned[col] = pd.cut(df_binned[col], bins=bins, labels=[0, 1, 2], include_lowest=True)\n",
+        "        df_binned['Average playtime forever'] = pd.to_numeric(df_binned['Average playtime forever'], errors='coerce')\n",
+        "        df_binned['Median playtime forever'] = pd.to_numeric(df_binned['Median playtime forever'], errors='coerce')\n",
+        "        df_shuffled = df_binned.sample(frac=1, random_state= np.random.randint(0, 10000) ).reset_index(drop=True)\n",
+        "        return df_shuffled.iloc[:int(percent*len(df_binned))], df_shuffled.iloc[int(percent*len(df_binned)):]\n",
+        "    def reinit(self, percent):\n",
+        "        self.binidf, self.testidf = self.Clean_Normalize(self.intidf, percent)\n",
+        "        self.cpt_avg_med = self.Get_CPT_Avg_Median()\n",
+        "        self.cpt_price = self.Get_CPT_Price()\n",
+        "        self.cpt_estimated_owners = self.Get_CPT_Estimated_Owners()\n",
+        "    def __init__(self, percent):\n",
+        "        \"\"\"\n",
+        "        Initialize the Bayesian Network with given CPTs.\n",
+        "\n",
+        "        :param cpt_dict: Dictionary of Conditional Probability Tables (CPTs)\n",
+        "        \"\"\"\n",
+        "        self.intidf = pd.read_parquet(\"hf://datasets/FronkonGames/steam-games-dataset/data/train-00000-of-00001-e2ed184370a06932.parquet\")\n",
+        "        self.binidf, self.testidf = self.Clean_Normalize(self.intidf, percent)\n",
+        "        self.cpt_avg_med = self.Get_CPT_Avg_Median()\n",
+        "        self.cpt_price = self.Get_CPT_Price()\n",
+        "        self.cpt_estimated_owners = self.Get_CPT_Estimated_Owners()\n",
+        "    def get_probabilityA(self, Developers,Publishers):\n",
+        "        \"\"\"\n",
+        "        Compute the probability distribution of a target variable given conditions.\n",
+        "\n",
+        "        :param target_var: The variable we want to predict.\n",
+        "        :param Publishers: str of given Publishers.\n",
+        "        :param Developers: str of given Developers.\n",
+        "        :return: What would be the most possible outcome of a new game from the given developers and publishers.\n",
+        "        \"\"\"\n",
+        "        Probability_Avg = self.cpt_avg_med['Average playtime forever'].xs((Developers, Publishers), level=['Developers', 'Publishers']).values.tolist()[0]\n",
+        "        Probability_Median = self.cpt_avg_med['Median playtime forever'].xs((Developers, Publishers), level=['Developers', 'Publishers']).values.tolist()[0]\n",
+        "        Most_Possibe_Avg = np.argmax(Probability_Avg)\n",
+        "        Most_Possible_Median =  np.argmax(Probability_Median)\n",
+        "        Probability_price = self.cpt_price.loc[(Most_Possibe_Avg, Most_Possible_Median)].to_list()\n",
+        "        Most_Possible_Price = np.argmax(Probability_price)\n",
+        "        Probability_Estimated_Owners = self.cpt_estimated_owners.loc[Most_Possible_Price].to_list()\n",
+        "        Most_Possible_Estimated_Owners = np.argmax(Probability_Estimated_Owners)\n",
+        "        return Most_Possible_Price, Most_Possible_Estimated_Owners\n",
+        "\n",
+        "    def get_range_description(column_name, bin_value):\n",
+        "        \"\"\"\n",
+        "        Given a column name and a bin value (0,1,2), return the corresponding range description.\n",
+        "\n",
+        "        :param column_name: The name of the feature (e.g., 'Price', 'Estimated owners').\n",
+        "        :param bin_value: The binned category (0, 1, or 2).\n",
+        "        :return: A string describing the value range.\n",
+        "        \"\"\"\n",
+        "        bin_ranges = {\n",
+        "        'Average playtime forever': [\"0 - 5\", \"5 - 20000\", \"20000+\"],\n",
+        "        'Median playtime forever': [\"0 - 10\", \"10 - 40000\", \"40000+\"],\n",
+        "        'Estimated owners': [\"0 - 20,000\", \"20,000 - 1,000,000\", \"1,000,000+\"],\n",
+        "        'Price': [\"$0 - $5\", \"$5 - $40\", \"$40+\"],\n",
+        "        'Positive Ratio': [\"0% - 50%\", \"50% - 80%\", \"80%+\"],\n",
+        "        'Negative Ratio': [\"0% - 50%\", \"50% - 80%\", \"80%+\"]\n",
+        "          }\n",
+        "\n",
+        "      # Ensure column exists in our range definitions\n",
+        "        if column_name not in bin_ranges:\n",
+        "            return \"Invalid column name\"\n",
+        "\n",
+        "        # Ensure bin_value is valid\n",
+        "        if bin_value not in [0, 1, 2]:\n",
+        "            return \"Invalid bin value\"\n",
+        "\n",
+        "        return bin_ranges[column_name][bin_value]\n",
+        "\n",
+        "    # fixed verstion of get probability and this is use for testing much more cases\n",
+        "    def get_probability(self, Developers, Publishers):\n",
+        "      # Try to extract the probability distribution for \"Average playtime forever\"\n",
+        "      # for the given (Developers, Publishers) combination from the CPT.\n",
+        "      try:\n",
+        "          avg_series = self.cpt_avg_med['Average playtime forever'].xs(\n",
+        "              (Developers, Publishers), level=['Developers', 'Publishers']\n",
+        "          )\n",
+        "      except KeyError:\n",
+        "          # If the key (Developers, Publishers) is not found, return no prediction.\n",
+        "          return None, None\n",
+        "\n",
+        "      # If the extracted series is empty, return no prediction.\n",
+        "      if avg_series.empty:\n",
+        "          return None, None\n",
+        "\n",
+        "      # Convert the average playtime probabilities to a list.\n",
+        "      Probability_Avg = avg_series.values.tolist()\n",
+        "      # If the list is empty, return no prediction.\n",
+        "      if len(Probability_Avg) == 0:\n",
+        "          return None, None\n",
+        "\n",
+        "      # Try to extract the probability distribution for \"Median playtime forever\"\n",
+        "      # for the given (Developers, Publishers) combination from the CPT.\n",
+        "      try:\n",
+        "          med_series = self.cpt_avg_med['Median playtime forever'].xs(\n",
+        "              (Developers, Publishers), level=['Developers', 'Publishers']\n",
+        "          )\n",
+        "      except KeyError:\n",
+        "          # If the key is not found, return no prediction.\n",
+        "          return None, None\n",
+        "\n",
+        "      # If the extracted series is empty, return no prediction.\n",
+        "      if med_series.empty:\n",
+        "          return None, None\n",
+        "\n",
+        "      # Convert the median playtime probabilities to a list.\n",
+        "      Probability_Median = med_series.values.tolist()\n",
+        "      # If the list is empty, return no prediction.\n",
+        "      if len(Probability_Median) == 0:\n",
+        "          return None, None\n",
+        "\n",
+        "      # Select the bin (index) with the highest probability for average playtime.\n",
+        "      Most_Possible_Avg = np.argmax(Probability_Avg)\n",
+        "      # Select the bin (index) with the highest probability for median playtime.\n",
+        "      Most_Possible_Median = np.argmax(Probability_Median)\n",
+        "\n",
+        "      # Use the most likely average and median bins to look up the Price CPT.\n",
+        "      try:\n",
+        "          price_probs = self.cpt_price.loc[(Most_Possible_Avg, Most_Possible_Median)].to_list()\n",
+        "      except KeyError:\n",
+        "          # If the Price CPT does not have data for these bins, return no prediction.\n",
+        "          return None, None\n",
+        "\n",
+        "      # Choose the Price bin with the highest probability.\n",
+        "      Most_Possible_Price = np.argmax(price_probs)\n",
+        "\n",
+        "      # Use the most likely Price bin to look up the Estimated Owners CPT.\n",
+        "      try:\n",
+        "          owners_probs = self.cpt_estimated_owners.loc[Most_Possible_Price].to_list()\n",
+        "      except KeyError:\n",
+        "          # If the Estimated Owners CPT does not have data for this Price bin, return no prediction.\n",
+        "          return None, None\n",
+        "\n",
+        "      # Choose the Estimated Owners bin with the highest probability.\n",
+        "      Most_Possible_Estimated_Owners = np.argmax(owners_probs)\n",
+        "\n",
+        "      # Return the predicted Price and Estimated Owners bins.\n",
+        "      return Most_Possible_Price, Most_Possible_Estimated_Owners\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "gNgHZ-hlhtV1",
+        "outputId": "3dc66859-760d-4745-efde-1100b691a13b"
+      },
+      "outputs": [],
+      "source": [
+        "# Example usage\n",
+        "model = BayesianNetworkModel(1)\n",
+        "#Example usage of get_probability\n",
+        "price, estimated_owners = model.get_probability('Valve', 'Valve')\n",
+        "\n",
+        "print(f\"Most probable price: {price}\")\n",
+        "print(f\"Most probable estimated owners: {estimated_owners}\")\n",
+        "\n",
+        "# Example usage of get_range_description (standalone function)\n",
+        "price_range = BayesianNetworkModel.get_range_description('Price', price)\n",
+        "estimated_owners_range = BayesianNetworkModel.get_range_description('Estimated owners', estimated_owners)\n",
+        "\n",
+        "print(f\"Price range: {price_range}\")\n",
+        "print(f\"Estimated Owners range: {estimated_owners_range}\")\n",
+        "\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 105
+        },
+        "id": "nGCBaiqgjgA2",
+        "outputId": "b6922a4c-8d95-47ab-88bf-d79cf09f8a7f"
+      },
+      "outputs": [],
+      "source": [
+        "\"\"\"\n",
+        "What Else Should Be Added?\n",
+        "To make the AI agent more robust and functional, consider adding the following features:\n",
+        "\n",
+        "1️⃣ More Advanced Inference Methods\n",
+        "Right now, the get_probability() function only filters the CPT based on developer and publisher.\n",
+        "🔹 Add full Bayesian inference to compute joint probabilities and marginalization.\n",
+        "🔹 Example: What is the probability of Estimated Owners given Price and Playtime?\n",
+        "\n",
+        "2️⃣ Hidden Variable Estimation\n",
+        "Right now, the AI agent assumes all variables are observable.\n",
+        "🔹 Implement expectation-maximization (EM) to handle missing values.\n",
+        "🔹 Example: Predict missing Playtime values based on Developer & Publisher.\n",
+        "\n",
+        "3️⃣ Decision-Making and Optimization\n",
+        "Currently, the model only provides probability outputs, but a real AI agent should take actions.\n",
+        "🔹 Implement utility-based decision-making to recommend the best price for a game to maximize revenue.\n",
+        "🔹 Example: \"Given Playtime and Owners, what is the optimal price for maximum revenue?\"\n",
+        "\n",
+        "4️⃣ Model Evaluation & Performance Metrics\n",
+        "Right now, the model does not evaluate itself.\n",
+        "🔹 Implement performance evaluation metrics to test accuracy on a held-out dataset.\n",
+        "🔹 Example:\n",
+        "\n",
+        "Log-likelihood to measure how well the model fits data.\n",
+        "Cross-validation for robust testing.\n",
+        "5️⃣ Data Preprocessing Improvements\n",
+        "🔹 Add automated outlier detection (e.g., Playtime = 999,999 minutes is likely an error).\n",
+        "🔹 Implement feature engineering, such as log-scaling for skewed data (e.g., playtime, sales).\n",
+        "\n",
+        "6️⃣ Learning from New Data (Online Learning)\n",
+        "Currently, the CPTs are precomputed and static.\n",
+        "🔹 Implement Bayesian updating so the model learns new probabilities dynamically as more game data becomes available.\n",
+        "\n",
+        "\n",
+        "\"\"\""
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "drbKy-Y5jQ2x"
+      },
+      "outputs": [],
+      "source": [
+        "import numpy as np\n",
+        "from sklearn.metrics import accuracy_score, confusion_matrix, classification_report\n",
+        "\n",
+        "def evaluate_bayesian_model(model, max_samples=1000):\n",
+        "    \"\"\"\n",
+        "    Evaluate the BayesianNetworkModel on a subset of test data by comparing\n",
+        "    predicted Price & Owners bins against the actual bins in the test set.\n",
+        "\n",
+        "    :param model: An instance of BayesianNetworkModel, which has already been trained.\n",
+        "    :param max_samples: Maximum number of test rows to evaluate.\n",
+        "    :return: A dictionary of evaluation metrics.\n",
+        "    \"\"\"\n",
+        "\n",
+        "    # Limit the test data to a maximum number of samples\n",
+        "    test_data = model.testidf.head(max_samples)\n",
+        "\n",
+        "    # Lists to store predictions & actual values\n",
+        "    predicted_prices = []\n",
+        "    actual_prices = []\n",
+        "    predicted_owners = []\n",
+        "    actual_owners = []\n",
+        "\n",
+        "    # Iterate over each row in the limited test set\n",
+        "    for idx, row in test_data.iterrows():\n",
+        "        dev = row['Developers']\n",
+        "        pub = row['Publishers']\n",
+        "\n",
+        "        # Use the get_probability method\n",
+        "        pred = model.get_probability(dev, pub)\n",
+        "        # If the prediction is None or any element is None, skip this row.\n",
+        "        if (pred is None) or (pred[0] is None) or (pred[1] is None):\n",
+        "            continue\n",
+        "\n",
+        "        pred_price_bin, pred_owners_bin = pred\n",
+        "        predicted_prices.append(pred_price_bin)\n",
+        "        actual_prices.append(row['Price'])\n",
+        "\n",
+        "        predicted_owners.append(pred_owners_bin)\n",
+        "        actual_owners.append(row['Estimated owners'])\n",
+        "\n",
+        "    # Check if we have any predictions after filtering\n",
+        "    if len(predicted_prices) == 0 or len(predicted_owners) == 0:\n",
+        "        print(\"No valid predictions available in the test set after filtering.\")\n",
+        "        return {}\n",
+        "\n",
+        "    # Convert lists to numpy arrays\n",
+        "    predicted_prices = np.array(predicted_prices)\n",
+        "    actual_prices = np.array(actual_prices)\n",
+        "    predicted_owners = np.array(predicted_owners)\n",
+        "    actual_owners = np.array(actual_owners)\n",
+        "\n",
+        "    # Calculate evaluation metrics for Price predictions\n",
+        "    price_accuracy = accuracy_score(actual_prices, predicted_prices)\n",
+        "    price_confusion = confusion_matrix(actual_prices, predicted_prices)\n",
+        "    price_report = classification_report(actual_prices, predicted_prices, zero_division=0)\n",
+        "\n",
+        "    # Calculate evaluation metrics for Estimated Owners predictions\n",
+        "    owners_accuracy = accuracy_score(actual_owners, predicted_owners)\n",
+        "    owners_confusion = confusion_matrix(actual_owners, predicted_owners)\n",
+        "    owners_report = classification_report(actual_owners, predicted_owners, zero_division=0)\n",
+        "\n",
+        "    # Prepare a dictionary with all the metrics we need\n",
+        "    metrics = {\n",
+        "        'price_accuracy': price_accuracy,\n",
+        "        'price_confusion_matrix': price_confusion,\n",
+        "        'price_classification_report': price_report,\n",
+        "        'owners_accuracy': owners_accuracy,\n",
+        "        'owners_confusion_matrix': owners_confusion,\n",
+        "        'owners_classification_report': owners_report\n",
+        "    }\n",
+        "\n",
+        "\n",
+        "    return metrics"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "id": "SVYJECpijSl1",
+        "outputId": "da0a226a-a842-4c75-fc53-9474f8f25d69"
+      },
+      "outputs": [],
+      "source": [
+        "# Step 1: Instantiate the model with, say, an 80/20 train/test split\n",
+        "model = BayesianNetworkModel(percent=0.8)\n",
+        "\n",
+        "# Step 2: Run the evaluation on the test set\n",
+        "evaluate_bayesian_model(model)"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "5Ib4kShhvtv0"
+      },
+      "source": [
+        "**Conclusion**\n",
+        "\n",
+        "The implemented Bayesian network model provides a clear, interpretable framework for predicting binned outcomes—specifically, the price range and estimated owners—for new games based on key attributes like Developers and Publishers. By leveraging conditional probability tables derived from binned historical data, the model follows a logical, step-by-step chain: it first estimates gameplay metrics (average and median playtime), then infers the most likely price bin, and finally predicts the corresponding bin for estimated owners.\n",
+        "\n",
+        "The evaluation process, which uses standard metrics such as accuracy, confusion matrices, and classification reports, confirms that the model can effectively map input conditions to target outcomes, albeit within the constraints of manual binning and deterministic probability lookups. This approach not only simplifies the complex relationships in the data but also offers transparent insights into the decision-making process.\n",
+        "\n",
+        "While promising, the model’s performance could be further enhanced by:\n",
+        "- Refining the binning strategies to better capture data nuances.\n",
+        "- Incorporating additional features or alternative probability estimation techniques.\n",
+        "- Expanding the dataset to improve the robustness of the CPTs.\n",
+        "\n",
+        "Overall, this Bayesian network serves as a solid starting point for predictive analytics in the gaming domain, highlighting both its practical applicability and areas for future improvement."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "execution_count": null,
+      "metadata": {
+        "id": "Kxkm8R8GvuYJ"
+      },
+      "outputs": [],
+      "source": []
+    }
+  ],
+  "metadata": {
+    "colab": {
+      "provenance": []
+    },
+    "kernelspec": {
+      "display_name": "basicPython",
+      "language": "python",
+      "name": "python3"
+    },
+    "language_info": {
+      "codemirror_mode": {
+        "name": "ipython",
+        "version": 3
+      },
+      "file_extension": ".py",
+      "mimetype": "text/x-python",
+      "name": "python",
+      "nbconvert_exporter": "python",
+      "pygments_lexer": "ipython3",
+      "version": "3.13.2"
+    }
+  },
+  "nbformat": 4,
+  "nbformat_minor": 0
+}
